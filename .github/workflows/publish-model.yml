@@ -20,7 +20,9 @@ on:
         required: false
       namespace:
         description: "Organisation on Hugging Face"
-        default: emkay-voice
+        # the organisation's handle on Hugging Face has capitals; downloads
+        # work with emkay-voice too, creating a repo needs the exact handle
+        default: Emkay-Voice
       upload:
         description: "Upload to Hugging Face (off: only convert and keep the files as an artifact)"
         type: boolean
