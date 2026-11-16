@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Tests the converted models the way Emkay runs them (tools/compare.mjs)",
+  "devDependencies": {
+    "@huggingface/transformers": "4.3.2"
+  }
+}

@@ -1,0 +1,10 @@
+# Conversion to ONNX (tools/convert.py). Pinned to versions that work
+# together: optimum's exporter breaks with torch >= 2.7 and onnx >= 1.18.
+optimum[exporters]>=1.24,<2
+transformers==4.51.3
+torch==2.6.0
+onnx<1.18
+onnxruntime==1.32.0
+ml_dtypes
+# Test audio (tools/piper_audio.py)
+piper-tts

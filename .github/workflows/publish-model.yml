@@ -1,0 +1,73 @@
+# Convert a speech recognition model to ONNX for transformers.js and publish it
+# on Hugging Face as emkay-voice/NAME. Run by hand: Actions → Publish model.
+#
+# Needs the repository secret HF_TOKEN: a Hugging Face token with write access
+# to the emkay-voice organisation. An owner adds it by hand (Settings →
+# Secrets and variables → Actions); it is never written anywhere else.
+name: Publish model
+
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Model on Hugging Face to convert (e.g. CoRal-project/roest-v3-wav2vec2-315m)"
+        required: true
+      name:
+        description: "Name under emkay-voice on Hugging Face (e.g. roest-wav2vec2-315m-onnx)"
+        required: true
+      results:
+        description: "Link to the test results and the reasons for the choice (docs/LANGUAGE.md)"
+        required: false
+      upload:
+        description: "Upload to Hugging Face (off: only convert and keep the files as an artifact)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install the conversion tools
+        run: |
+          uv venv --python 3.12 .venv
+          uv pip install --python .venv/bin/python -r requirements.txt \
+            --extra-index-url https://download.pytorch.org/whl/cpu --index-strategy unsafe-best-match
+      - name: Convert
+        env: { SOURCE: "${{ inputs.source }}", NAME: "${{ inputs.name }}" }
+        run: .venv/bin/python tools/convert.py "$SOURCE" "out/$NAME"
+      - name: Model card and license
+        env: { SOURCE: "${{ inputs.source }}", NAME: "${{ inputs.name }}", RESULTS: "${{ inputs.results }}" }
+        run: .venv/bin/python tools/model_card.py "$SOURCE" "out/$NAME" "$RESULTS"
+      - name: Check it runs in transformers.js
+        env: { NAME: "${{ inputs.name }}" }
+        run: |
+          npm install
+          node tools/smoke.mjs "./$NAME"
+      - name: Keep the files
+        if: ${{ !inputs.upload }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.name }}
+          path: out/${{ inputs.name }}
+      - name: Upload to Hugging Face
+        if: ${{ inputs.upload }}
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          NAME: ${{ inputs.name }}
+          SOURCE: ${{ inputs.source }}
+        run: |
+          test -n "$HF_TOKEN" || { echo "::error::The HF_TOKEN secret is missing"; exit 1; }
+          .venv/bin/python - <<'EOF'
+          import os
+          from huggingface_hub import HfApi
+          api, repo = HfApi(), "emkay-voice/" + os.environ["NAME"]
+          api.create_repo(repo, exist_ok=True)
+          api.upload_folder(repo_id=repo, folder_path="out/" + os.environ["NAME"],
+                            commit_message="Converted from " + os.environ["SOURCE"])
+          print("https://huggingface.co/" + repo)
+          EOF

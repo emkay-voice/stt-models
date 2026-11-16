@@ -1,0 +1,8 @@
+.venv/
+node_modules
+.cache
+out
+data
+audio
+voices
+*.log
