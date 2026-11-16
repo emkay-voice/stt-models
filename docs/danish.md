@@ -109,7 +109,7 @@ license on.
   letters are merged. `convert.py` works around it by marking the blank as
   not special in `tokenizer.json`. It also affects transformers.js' own
   English wav2vec2 models ("FELOW" for "fellow"), so it belongs fixed
-  upstream.
+  upstream: [huggingface/transformers.js#1947](https://github.com/huggingface/transformers.js/issues/1947).
 - **The merged Whisper decoder was not quantized**: `quantize_dynamic`
   leaves the weights in the decoder's `If` subgraphs alone unless asked
   (`EnableSubgraph`).
