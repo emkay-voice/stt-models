@@ -1,5 +1,5 @@
 # Convert a speech recognition model to ONNX for transformers.js and publish it
-# on Hugging Face as emkay-voice/NAME. Run by hand: Actions → Publish model.
+# on Hugging Face as NAMESPACE/NAME (emkay-voice/NAME). Run by hand: Actions → Publish model.
 #
 # Needs the repository secret HF_TOKEN: a Hugging Face token with write access
 # to the emkay-voice organisation. An owner adds it by hand (Settings →
@@ -18,6 +18,9 @@ on:
       results:
         description: "Link to the test results and the reasons for the choice (docs/LANGUAGE.md)"
         required: false
+      namespace:
+        description: "Organisation on Hugging Face"
+        default: emkay-voice
       upload:
         description: "Upload to Hugging Face (off: only convert and keep the files as an artifact)"
         type: boolean
@@ -60,12 +63,13 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           NAME: ${{ inputs.name }}
           SOURCE: ${{ inputs.source }}
+          NAMESPACE: ${{ inputs.namespace }}
         run: |
           test -n "$HF_TOKEN" || { echo "::error::The HF_TOKEN secret is missing"; exit 1; }
           .venv/bin/python - <<'EOF'
           import os
           from huggingface_hub import HfApi
-          api, repo = HfApi(), "emkay-voice/" + os.environ["NAME"]
+          api, repo = HfApi(), os.environ["NAMESPACE"] + "/" + os.environ["NAME"]
           api.create_repo(repo, exist_ok=True)
           api.upload_folder(repo_id=repo, folder_path="out/" + os.environ["NAME"],
                             commit_message="Converted from " + os.environ["SOURCE"])
