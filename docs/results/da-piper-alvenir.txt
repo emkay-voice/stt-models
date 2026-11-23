@@ -1,0 +1,16 @@
+# tests/sentences_da.txt spoken by Piper da_DK-talesyntese-medium. node tools/compare.mjs da ./alvenir-wav2vec2-base-da on 2026-11-23
+== ./alvenir-wav2vec2-base-da (loaded in 319 ms)
+✗ 206 ms  "hvær er klokken"  (Hvad er klokken?)
+✗ 1335 ms  "sæt in timer på fem minutter"  (Sæt en timer på fem minutter.)
+✗ 233 ms  "hvordan bliver været i morgen"  (Hvordan bliver vejret i morgen?)
+✗ 224 ms  "sin lyset i stuen"  (Tænd lyset i stuen.)
+✓ 250 ms  "sluk lyset i køkkenet"  (Sluk lyset i køkkenet.)
+✗ 198 ms  "spdar p en"  (Spil DR P1.)
+✗ 283 ms  "hver hovedsteden i freen krig"  (Hvad er hovedstaden i Frankrig?)
+✓ 189 ms  "fortæl mig en vittighed"  (Fortæl mig en vittighed.)
+✗ 182 ms  "skroop for lyden"  (Skru op for lyden.)
+✓ 226 ms  "hvilken dag er det i dag"  (Hvilken dag er det i dag?)
+✗ 1392 ms  "med mig om at købe mindtklokken fire"  (Mind mig om at købe mælk klokken fire.)
+✗ 272 ms  "hvor mange gradder jeg udenfor"  (Hvor mange grader er der udenfor?)
+WER 34.5%  avg 416 ms
+./alvenir-wav2vec2-base-da                         WER  34.5%     416 ms/sentence
