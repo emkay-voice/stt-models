@@ -8,19 +8,24 @@ onnx/decoder_model_merged_quantized.onnx (8 bit).
 wav2vec2 (CTC): onnx/model.onnx and onnx/model_quantized.onnx.
 The configs, tokenizer and feature extractor files go next to onnx/, as
 in onnx-community's models.
+
+Every .onnx is saved with its weights in a file of their own
+(NAME.onnx_data), and config.json tells transformers.js so. A browser then
+opens the model with far less memory: see externalize().
+
+    python convert.py --externalize OUT_DIR    (only that, on a converted model)
 """
 import json
 import shutil
 import sys
 from pathlib import Path
 
-from optimum.exporters.onnx import main_export
-from onnxruntime.quantization import QuantType, quantize_dynamic
-from transformers import AutoConfig, AutoFeatureExtractor, AutoProcessor, AutoTokenizer
+import onnx as onnxlib
 
 
 def quantize(onnx: Path, name: str):
     """8-bit dynamic quantization of onnx/NAME.onnx -> onnx/NAME_quantized.onnx"""
+    from onnxruntime.quantization import QuantType, quantize_dynamic
     quantize_dynamic(str(onnx / f"{name}.onnx"), str(onnx / f"{name}_quantized.onnx"),
                      weight_type=QuantType.QInt8,
                      # the merged decoder keeps its weights in If-subgraphs
@@ -33,6 +38,7 @@ def ctc_tokenizer_json(out: Path):
     transformers.js only reads tokenizer.json, and Wav2Vec2CTCTokenizer has no
     fast version to save one. Same layout as transformers.js' own conversion:
     one token per character, "|" between words, CTC decoding."""
+    from transformers import AutoTokenizer
     tok = AutoTokenizer.from_pretrained(out)
     vocab = tok.get_vocab()
     delim = tok.word_delimiter_token or "|"
@@ -56,7 +62,35 @@ def ctc_tokenizer_json(out: Path):
     (out / "tokenizer.json").write_text(json.dumps(data, ensure_ascii=False, indent=1))
 
 
+def externalize(out: Path):
+    """Save every onnx/*.onnx with its weights in NAME.onnx_data, and tell
+    transformers.js in config.json ("transformers.js_config").
+
+    In a browser, onnxruntime-web copies a one-file model into WebAssembly
+    memory and parses it there, so the weights are in it two to three times
+    while the model opens; WebAssembly memory never shrinks, and the space
+    stays taken. With the weights in a file of their own, each one is read
+    straight into its tensor. Røst at 8 bit (303 MB): 635 MB of WebAssembly
+    memory for one file, 358 MB like this (docs/danish.md)."""
+    onnx = out / "onnx"
+    names = {}
+    for f in sorted(onnx.glob("*.onnx")):
+        data = f.with_name(f.name + "_data")
+        model = onnxlib.load(f)     # reads an existing NAME.onnx_data too
+        data.unlink(missing_ok=True)
+        onnxlib.save_model(model, f, save_as_external_data=True, all_tensors_to_one_file=True,
+                           location=data.name, size_threshold=1024)
+        names[f.name] = 1           # one data file each (transformers.js counts chunks)
+    cfg_path = out / "config.json"
+    cfg = json.loads(cfg_path.read_text())
+    cfg.setdefault("transformers.js_config", {})["use_external_data_format"] = names
+    cfg_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
+
+
 def main(model_id: str, out: str):
+    from optimum.exporters.onnx import main_export
+    from transformers import AutoConfig, AutoFeatureExtractor, AutoProcessor, AutoTokenizer
+
     out = Path(out)
     tmp = out / "_export"
     shutil.rmtree(out, ignore_errors=True)
@@ -88,6 +122,7 @@ def main(model_id: str, out: str):
         AutoFeatureExtractor.from_pretrained(model_id).save_pretrained(out)
         ctc_tokenizer_json(out)
     shutil.rmtree(tmp)
+    externalize(out)
     for f in sorted(out.rglob("*")):
         if f.is_file():
             print(f"{f.relative_to(out)}  {f.stat().st_size / 1e6:.1f} MB")
@@ -98,5 +133,7 @@ if __name__ == "__main__":
         ctc_tokenizer_json(Path(sys.argv[2]))
     elif sys.argv[1] == "--quantize":  # redo only the quantization: --quantize OUT_DIR NAME
         quantize(Path(sys.argv[2]) / "onnx", sys.argv[3])
+    elif sys.argv[1] == "--externalize":  # only move the weights out: --externalize OUT_DIR
+        externalize(Path(sys.argv[2]))
     else:
         main(*sys.argv[1:3])

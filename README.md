@@ -32,6 +32,7 @@ shows how to bring one into Emkay.
 | `tools/piper_audio.py` | Test recordings of `tests/sentences_LANG.txt`, spoken by Piper. |
 | `tools/model_card.py` | Model card for Hugging Face, with the original's license carried over. |
 | `tools/smoke.mjs` | Checks that a converted model runs before it is published. |
+| `tools/memory.mjs` | How much WebAssembly memory a model takes when the browser opens it. |
 | `.github/workflows/publish-model.yml` | Converts and publishes a model on Hugging Face (run by hand). |
 | `docs/` | Why each model was chosen, how to add a language, results. |
 
