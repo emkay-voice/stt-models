@@ -67,6 +67,11 @@ The `_quantized` files are 8 bit, about a quarter of the size. Emkay uses
 those. For wav2vec2, `convert.py` also writes the `tokenizer.json` that
 transformers.js needs (see [danish.md](danish.md) for a pitfall it avoids).
 
+Each `.onnx` has its weights in a file of its own next to it
+(`NAME.onnx_data`), and `config.json` says so to transformers.js. A browser
+opens the model with much less memory that way (see
+[danish.md](danish.md#memory)).
+
 ## 3. Measure
 
 Two test sets, both made by scripts here:
@@ -93,6 +98,12 @@ node tools/compare.mjs nb ./NAME:q8:q8
 per sentence. Write the results down in `docs/LANGUAGE.md`, as
 [danish.md](danish.md) does, with the reasons for the choice, so we later
 know why.
+
+And how much memory it takes in the browser:
+
+```sh
+node tools/memory.mjs out/NAME/onnx/model_quantized.onnx
+```
 
 A model is worth a line in the table when it is clearly better than
 whisper-base and not much slower. On a phone without WebGPU the time per

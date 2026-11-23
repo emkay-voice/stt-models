@@ -118,6 +118,32 @@ license on.
 - **Conversion tools**: optimum's ONNX exporter does not work with torch
   2.7 or newer; `requirements.txt` pins versions that work together.
 
+## Memory
+
+On a Lenovo tablet Emkay in Danish closed and started over again and again,
+while it was fine on a Samsung S24. Røst is the biggest thing Emkay opens,
+and the way it was opened cost far more memory than its size.
+
+onnxruntime-web, in the browser, copies a one-file model into WebAssembly
+memory and parses it there, so while the model opens its weights are in
+that memory two to three times. WebAssembly memory never shrinks: what was
+taken while opening stays taken for as long as the page lives. With the
+weights in a file of their own (`model_quantized.onnx_data`), each one is
+read straight into its tensor.
+
+`tools/memory.mjs`, Røst at 8 bit (303 MB), onnxruntime-web as
+transformers.js runs it:
+
+| | WebAssembly memory, opened | after one run (3 s) |
+|---|---|---|
+| one file | 635 MB | 635 MB |
+| weights in their own file | 358 MB | 429 MB |
+
+The transcripts are the same, word for word. `convert.py` now saves every
+model this way and writes `"transformers.js_config":
+{"use_external_data_format": …}` into `config.json`, so Emkay needs no
+change: transformers.js reads that and fetches both files.
+
 ## Next
 
 Measure Røst on a phone, with and without WebGPU: download time, the first
