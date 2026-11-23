@@ -6,6 +6,12 @@
 `emkay-voice/roest-wav2vec2-315m-onnx`, at 8 bit (~320 MB). Every other
 language except English keeps the multilingual Whisper base.
 
+On devices with little memory (a tablet with 4 GB, an iPhone) Røst is
+too big to open, and Danish uses a light model instead:
+[Alvenir's wav2vec2 base](https://huggingface.co/Alvenir/wav2vec2-base-da-ft-nst),
+converted to `emkay-voice/alvenir-wav2vec2-base-da-onnx` (~95 MB). See
+[A light model](#a-light-model).
+
 Decided November 2026, from the measurements below.
 
 ## The problem
@@ -143,6 +149,37 @@ The transcripts are the same, word for word. `convert.py` now saves every
 model this way and writes `"transformers.js_config":
 {"use_external_data_format": …}` into `config.json`, so Emkay needs no
 change: transformers.js reads that and fetches both files.
+
+## A light model
+
+Split, Røst still did not fit a Lenovo Tab M10 Plus (3rd gen, 4 GB): the
+tab closed while Røst opened. Android gives one Chrome tab far less than
+the device's memory, and Emkay is near that before its ears open; while
+Røst opens, transformers.js holds its 303 MB in JavaScript as well as the
+358 MB in WebAssembly. A Samsung S24 (8 GB and more) has no trouble.
+
+So Danish has a second, light model for small devices:
+[Alvenir/wav2vec2-base-da-ft-nst](https://huggingface.co/Alvenir/wav2vec2-base-da-ft-nst),
+a wav2vec2 base (95 M parameters) fine-tuned on the Danish NST corpus by
+Alvenir, Apache-2.0. Commands, as above
+([results/da-piper-alvenir.txt](results/da-piper-alvenir.txt)):
+
+| model | WER | time per sentence | 8 bit | WebAssembly memory, opened / after a run |
+|---|---|---|---|---|
+| Røst | 29.3% | 1.0 s | 303 MB | 358 / 429 MB |
+| **Alvenir base** | **34.5%** | **0.4 s** | **95 MB** | **120 / 144 MB** |
+| whisper-base | 62.1% | 1.5 s | 136 MB | 255 / 368 MB |
+
+Close to Røst on commands, three times as fast, a third of the memory.
+Its mistakes are spelling too ("hvær er klokken", "sin lyset i stuen").
+NST is read speech from 2000, so dialects and casual speech will suffer
+more than with Røst: Røst stays the model wherever it fits.
+
+Which one a device gets is Emkay's choice (ovos-stt-plugin-whisper-browser's
+`light` setting): the light one where the browser says the device has
+less than 8 GB (`navigator.deviceMemory`, which Chrome rounds down: a
+6 GB phone says 4) or says nothing (Safari, Firefox), and after a start
+that ended with the page closed.
 
 ## Next
 
